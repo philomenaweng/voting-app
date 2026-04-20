@@ -81,14 +81,7 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
 
       {/* Voting UI */}
       {showVotingUI && (
-        <form action={handleVoteSubmit} className="space-y-5">
-          {votingAs.map((name) => (
-            <input key={name} type="hidden" name="voterName" value={name} />
-          ))}
-          {selectedAnswers.map((a) => (
-            <input key={a} type="hidden" name="answer" value={a} />
-          ))}
-
+        <div className="space-y-5">
           {/* Voting As */}
           {sessionUsers.length > 1 && (
             <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
@@ -154,14 +147,24 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
             })}
           </div>
 
+          {/* Write-in — separate form, outside the vote form */}
           <AddAnswerForm cardId={card.id} />
 
-          <SubmitButton
-            className="w-full py-2.5"
-            disabled={selectedAnswers.length === 0 || votingAs.length === 0}
-          >
-            Submit Vote
-          </SubmitButton>
+          {/* Vote submit — own form with hidden inputs for controlled state */}
+          <form action={handleVoteSubmit} className="space-y-3">
+            {votingAs.map((name) => (
+              <input key={name} type="hidden" name="voterName" value={name} />
+            ))}
+            {selectedAnswers.map((a) => (
+              <input key={a} type="hidden" name="answer" value={a} />
+            ))}
+            <SubmitButton
+              className="w-full py-2.5"
+              disabled={selectedAnswers.length === 0 || votingAs.length === 0}
+            >
+              Submit Vote
+            </SubmitButton>
+          </form>
 
           {isEditing && (
             <button
@@ -172,7 +175,7 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
               Cancel
             </button>
           )}
-        </form>
+        </div>
       )}
 
       {/* Results UI */}
@@ -215,7 +218,7 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
             })}
           </div>
 
-          {!isCompleted && sessionUsers.length > 0 && (
+          {sessionUsers.length > 0 && (
             <button
               type="button"
               onClick={startEditing}

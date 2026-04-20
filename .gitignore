@@ -5,6 +5,7 @@
 
 # next.js
 /.next/
+.next/localstorage.db
 /out/
 
 # production
@@ -16,6 +17,9 @@
 
 # local env files
 .env*.local
+
+# claude code
+.claude/
 
 # typescript
 *.tsbuildinfo
