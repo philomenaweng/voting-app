@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { redirect } from 'next/navigation'
 import { getAllUsers } from '@/lib/kv'
 import { getSession } from '@/lib/session'
