@@ -1,24 +1,47 @@
 'use client'
 
 import { useState } from 'react'
-import { PlusCircle, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronRight, PlusCircle, Trash2 } from 'lucide-react'
 import { createCardAction } from '@/app/actions/cards'
 import SubmitButton from './SubmitButton'
 
+interface Draft {
+  text: string
+  description: string
+  expanded: boolean
+}
+
 export default function CreateCardForm() {
-  const [answers, setAnswers] = useState(['', ''])
+  const [answers, setAnswers] = useState<Draft[]>([
+    { text: '', description: '', expanded: false },
+    { text: '', description: '', expanded: false },
+  ])
   const [voteType, setVoteType] = useState<'single' | 'multiple'>('single')
 
   function addAnswer() {
-    setAnswers((prev) => [...prev, ''])
+    setAnswers((prev) => [...prev, { text: '', description: '', expanded: false }])
   }
 
   function removeAnswer(index: number) {
     setAnswers((prev) => prev.filter((_, i) => i !== index))
   }
 
-  function updateAnswer(index: number, value: string) {
-    setAnswers((prev) => prev.map((a, i) => (i === index ? value : a)))
+  function updateText(index: number, value: string) {
+    setAnswers((prev) =>
+      prev.map((a, i) => (i === index ? { ...a, text: value } : a))
+    )
+  }
+
+  function updateDescription(index: number, value: string) {
+    setAnswers((prev) =>
+      prev.map((a, i) => (i === index ? { ...a, description: value } : a))
+    )
+  }
+
+  function toggleExpanded(index: number) {
+    setAnswers((prev) =>
+      prev.map((a, i) => (i === index ? { ...a, expanded: !a.expanded } : a))
+    )
   }
 
   return (
@@ -74,23 +97,47 @@ export default function CreateCardForm() {
           </label>
           <div className="space-y-2">
             {answers.map((answer, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <input
-                  type="text"
-                  name="answer"
-                  value={answer}
-                  onChange={(e) => updateAnswer(index, e.target.value)}
-                  placeholder={`Option ${index + 1}`}
-                  className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-                {answers.length > 2 && (
+              <div key={index} className="space-y-2">
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => removeAnswer(index)}
-                    className="text-slate-400 hover:text-red-500 transition-colors"
+                    onClick={() => toggleExpanded(index)}
+                    aria-label={answer.expanded ? 'Collapse details' : 'Expand details'}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    {answer.expanded ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4" />
+                    )}
                   </button>
+                  <input
+                    type="text"
+                    name="answer"
+                    value={answer.text}
+                    onChange={(e) => updateText(index, e.target.value)}
+                    placeholder={`Option ${index + 1}`}
+                    className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  />
+                  {answers.length > 2 && (
+                    <button
+                      type="button"
+                      onClick={() => removeAnswer(index)}
+                      className="text-slate-400 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                <input type="hidden" name="answerDetails" value={answer.description} />
+                {answer.expanded && (
+                  <textarea
+                    value={answer.description}
+                    onChange={(e) => updateDescription(index, e.target.value)}
+                    rows={3}
+                    placeholder="Add more details about this option…"
+                    className="ml-8 w-[calc(100%-2rem)] px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-y"
+                  />
                 )}
               </div>
             ))}

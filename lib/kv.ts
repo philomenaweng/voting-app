@@ -1,5 +1,5 @@
 import { Redis } from '@upstash/redis'
-import type { Card, VoteMap } from './types'
+import type { Answer, Card, VoteMap } from './types'
 
 let _redis: Redis | null = null
 
@@ -36,7 +36,11 @@ export async function createCard(card: Card): Promise<void> {
 export async function getCard(id: string): Promise<Card | null> {
   const raw = await getRedis().get<string>(`card:${id}`)
   if (!raw) return null
-  return typeof raw === 'string' ? JSON.parse(raw) : raw
+  const card = (typeof raw === 'string' ? JSON.parse(raw) : raw) as Card
+  card.answers = (card.answers as unknown as (string | Answer)[]).map((a) =>
+    typeof a === 'string' ? { text: a } : a
+  )
+  return card
 }
 
 export async function getAllCardIds(): Promise<string[]> {
@@ -46,8 +50,62 @@ export async function getAllCardIds(): Promise<string[]> {
 export async function addAnswerToCard(id: string, answer: string): Promise<void> {
   const card = await getCard(id)
   if (!card) return
-  card.answers.push(answer)
+  card.answers.push({ text: answer })
   await getRedis().set(`card:${id}`, JSON.stringify(card))
+}
+
+export async function editAnswerOnCard(
+  id: string,
+  index: number,
+  text: string
+): Promise<void> {
+  const card = await getCard(id)
+  if (!card) return
+  if (index < 0 || index >= card.answers.length) return
+  card.answers[index] = { ...card.answers[index], text }
+  await getRedis().set(`card:${id}`, JSON.stringify(card))
+}
+
+export async function setAnswerDescriptionOnCard(
+  id: string,
+  index: number,
+  description: string
+): Promise<void> {
+  const card = await getCard(id)
+  if (!card) return
+  if (index < 0 || index >= card.answers.length) return
+  const trimmed = description.trim()
+  if (trimmed) {
+    card.answers[index] = { ...card.answers[index], description: trimmed }
+  } else {
+    const { description: _drop, ...rest } = card.answers[index]
+    card.answers[index] = rest
+  }
+  await getRedis().set(`card:${id}`, JSON.stringify(card))
+}
+
+export async function deleteAnswerFromCard(
+  id: string,
+  index: number
+): Promise<void> {
+  const card = await getCard(id)
+  if (!card) return
+  if (index < 0 || index >= card.answers.length) return
+
+  card.answers.splice(index, 1)
+  await getRedis().set(`card:${id}`, JSON.stringify(card))
+
+  const voteMap = await getVotes(id)
+  const migrated: Record<string, string> = {}
+  for (const [user, selections] of Object.entries(voteMap)) {
+    const next = selections
+      .filter((i) => Number(i) !== index)
+      .map((i) => (Number(i) > index ? String(Number(i) - 1) : i))
+    migrated[user] = JSON.stringify(next)
+  }
+  if (Object.keys(migrated).length > 0) {
+    await getRedis().hset(`votes:card:${id}`, migrated)
+  }
 }
 
 export async function deleteCard(id: string): Promise<void> {
