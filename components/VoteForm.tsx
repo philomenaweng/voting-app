@@ -425,7 +425,7 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
                         </span>
                         <div className="flex items-center gap-1 shrink-0">
                           <span className="text-sm text-slate-500 mr-1">
-                            {count} vote{count !== 1 ? 's' : ''} · {pct}%
+                            {count} vote{count !== 1 ? 's' : ''}
                           </span>
                           <button
                             type="button"

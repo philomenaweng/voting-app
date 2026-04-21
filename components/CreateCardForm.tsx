@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, PlusCircle, Trash2 } from 'lucide-react'
+import Link from 'next/link'
+import { ArrowLeft, ChevronDown, ChevronRight, PlusCircle, Trash2 } from 'lucide-react'
 import { createCardAction } from '@/app/actions/cards'
 import SubmitButton from './SubmitButton'
 
@@ -45,7 +46,15 @@ export default function CreateCardForm() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
+    <div className="max-w-2xl mx-auto px-4 py-6">
+      <Link
+        href="/home"
+        className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-6 transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to votes
+      </Link>
+
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-slate-900">New Vote</h1>
       </div>
