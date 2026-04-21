@@ -50,6 +50,14 @@ export async function addAnswerToCard(id: string, answer: string): Promise<void>
   await getRedis().set(`card:${id}`, JSON.stringify(card))
 }
 
+export async function deleteCard(id: string): Promise<void> {
+  await Promise.all([
+    getRedis().del(`card:${id}`),
+    getRedis().del(`votes:card:${id}`),
+    getRedis().srem('card-ids', id),
+  ])
+}
+
 // --- Votes ---
 
 export async function getVotes(cardId: string): Promise<VoteMap> {

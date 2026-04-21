@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { createCard, addAnswerToCard } from '@/lib/kv'
+import { createCard, addAnswerToCard, deleteCard } from '@/lib/kv'
 import type { Card } from '@/lib/types'
 
 export async function createCardAction(formData: FormData): Promise<void> {
@@ -27,6 +27,12 @@ export async function createCardAction(formData: FormData): Promise<void> {
   await createCard(card)
   revalidatePath('/home')
   redirect(`/card/${card.id}`)
+}
+
+export async function deleteCardAction(cardId: string): Promise<void> {
+  await deleteCard(cardId)
+  revalidatePath('/home')
+  redirect('/home')
 }
 
 export async function addAnswerAction(cardId: string, formData: FormData): Promise<void> {
