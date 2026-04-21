@@ -41,9 +41,12 @@ export default async function HomePage() {
     )
   ).filter((c): c is CardWithStatus => c !== null)
 
-  cardsWithVotes.sort(
-    (a, b) => BUCKET_ORDER.indexOf(a.bucket) - BUCKET_ORDER.indexOf(b.bucket)
-  )
+  cardsWithVotes.sort((a, b) => {
+    const bucketDiff =
+      BUCKET_ORDER.indexOf(a.bucket) - BUCKET_ORDER.indexOf(b.bucket)
+    if (bucketDiff !== 0) return bucketDiff
+    return b.createdAt - a.createdAt
+  })
 
   return (
     <div className="min-h-screen">
