@@ -2,17 +2,16 @@
 
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { createCard, addAnswerToCard, deleteCard } from '@/lib/kv'
+import { createCard, addAnswerToCard, deleteCard, getAllUsers } from '@/lib/kv'
 import type { Card } from '@/lib/types'
 
 export async function createCardAction(formData: FormData): Promise<void> {
   const question = (formData.get('question') as string).trim()
-  const participants = formData.getAll('participants') as string[]
-  const thresholdRaw = formData.get('threshold') as string
   const answers = (formData.getAll('answer') as string[]).map((a) => a.trim()).filter(Boolean)
   const voteType = formData.get('voteType') as 'single' | 'multiple'
 
-  const threshold = parseInt(thresholdRaw, 10) || participants.length
+  const participants = await getAllUsers()
+  const threshold = participants.length
 
   const card: Card = {
     id: crypto.randomUUID(),
