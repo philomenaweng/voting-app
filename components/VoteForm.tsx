@@ -71,21 +71,12 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
       {/* Question */}
       <div>
         <h1 className="text-xl font-semibold text-slate-900 leading-snug">{card.question}</h1>
-        <div className="flex items-center gap-2 mt-1 flex-wrap">
-          <p className="text-sm text-slate-400">
-            {totalVoters} / {card.threshold} voted
-            {isCompleted && (
-              <span className="ml-2 text-green-600 font-medium">· Completed</span>
-            )}
-          </p>
-          <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${
-            card.voteType === 'multiple'
-              ? 'bg-violet-50 text-violet-700 border-violet-200'
-              : 'bg-sky-50 text-sky-700 border-sky-200'
-          }`}>
-            {card.voteType === 'multiple' ? 'Multiple choice' : 'Single choice'}
-          </span>
-        </div>
+        <p className="text-sm text-slate-400 mt-1">
+          {totalVoters} / {card.threshold} voted
+          {isCompleted && (
+            <span className="ml-2 text-green-600 font-medium">· Completed</span>
+          )}
+        </p>
       </div>
 
       {/* Voting UI */}
