@@ -28,17 +28,25 @@ export default function CardListItem({ card }: Props) {
   return (
     <div className="relative bg-white border border-slate-200 rounded-xl shadow-sm hover:border-indigo-300 hover:shadow-md transition-all">
       <Link href={`/card/${card.id}`} className="block p-5">
-        <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="mb-3 pr-36">
           <h3 className="font-medium text-slate-900 leading-snug">{card.question}</h3>
-          <span className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${config.className}`}>
-            {config.label}
-          </span>
         </div>
         <p className="text-xs text-slate-400">
           {card.votedCount} / {total} voted
         </p>
+        <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2">
+          <div
+            className={`h-1.5 rounded-full transition-all duration-300 ${total > 0 && card.votedCount * 2 >= total ? 'bg-green-500' : 'bg-orange-500'}`}
+            style={{
+              width: `${total > 0 ? Math.min(100, (card.votedCount / total) * 100) : 0}%`,
+            }}
+          />
+        </div>
       </Link>
-      <div className="absolute bottom-3 right-3">
+      <div className="absolute top-5 right-5 flex items-center gap-1.5">
+        <span className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${config.className}`}>
+          {config.label}
+        </span>
         <DeleteCardButton cardId={card.id} question={card.question} />
       </div>
     </div>

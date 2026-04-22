@@ -381,13 +381,22 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
       )}
 
       {/* Results UI */}
-      {showResults && (
+      {showResults && (() => {
+        const maxVotes = card.answers.reduce(
+          (m, a) => Math.max(m, totalVotes(a.id)),
+          0
+        )
+        return (
         <div className="space-y-5">
           <div className="space-y-3">
-            {card.answers.map((answer) => {
+            {[...card.answers]
+              .sort((a, b) => totalVotes(b.id) - totalVotes(a.id))
+              .map((answer) => {
               const count = totalVotes(answer.id)
               const mySelections = sessionUsers.flatMap((n) => voteMap[n] ?? [])
               const isMyChoice = mySelections.includes(answer.id)
+              const isLeader = maxVotes > 0 && count === maxVotes
+              const highlight = totalParticipants > 0 && count / totalParticipants > 0.75
               const isRowEditing = editingAnswerId === answer.id
               const isExpanded = expandedAnswers.has(answer.id)
 
@@ -395,7 +404,7 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
                 <div
                   key={answer.id}
                   className={`rounded-xl border p-4 group ${
-                    isMyChoice
+                    highlight
                       ? 'bg-indigo-50 border-indigo-300'
                       : 'bg-white border-slate-200'
                   }`}
@@ -442,7 +451,7 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
                     <>
                       <div className="flex items-center justify-between gap-2">
                         <span className="flex items-center gap-1 min-w-0">
-                          <span className={`text-base font-medium truncate ${isMyChoice ? 'text-indigo-800' : 'text-slate-800'}`}>
+                          <span className={`text-base truncate ${isLeader ? 'font-semibold text-slate-900' : 'font-medium text-slate-800'}`}>
                             {isMyChoice && <CheckCircle2 className="w-4 h-4 inline mr-1.5 text-indigo-600" />}
                             {answer.text}
                           </span>
@@ -472,6 +481,14 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
                           </button>
                         </div>
                       </div>
+                      <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2">
+                        <div
+                          className={`h-1.5 rounded-full transition-all duration-300 ${isLeader ? 'bg-indigo-500' : 'bg-indigo-200'}`}
+                          style={{
+                            width: `${maxVotes > 0 ? (count / maxVotes) * 100 : 0}%`,
+                          }}
+                        />
+                      </div>
                       {answer.description && (
                         <div className="mt-3">
                           <DescriptionPanel
@@ -499,7 +516,8 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
             </button>
           )}
         </div>
-      )}
+        )
+      })()}
     </div>
   )
 }
