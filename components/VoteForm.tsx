@@ -123,7 +123,11 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
   }
 
   async function handleDeleteAnswer(index: number, text: string) {
-    const confirmed = window.confirm(`Delete option "${text}"?`)
+    const voteCount = totalVotes(String(index))
+    const message = voteCount > 0
+      ? `Delete option "${text}"? ${voteCount} vote${voteCount !== 1 ? 's' : ''} for this option will be removed.`
+      : `Delete option "${text}"?`
+    const confirmed = window.confirm(message)
     if (!confirmed) return
     setAnswerPending(true)
     await deleteAnswerAction(card.id, index)
@@ -195,7 +199,6 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
             {card.answers.map((answer, index) => {
               const idx = String(index)
               const isSelected = selectedAnswers.includes(idx)
-              const hasVotes = totalVotes(idx) > 0
               const isRowEditing = editingAnswerIndex === index
               const isExpanded = expandedAnswers.has(index)
 
@@ -245,7 +248,7 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
               }
 
               return (
-                <div key={index} className="space-y-2">
+                <div key={index} className="space-y-2 group">
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
@@ -274,17 +277,17 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
                       onClick={() => startEditAnswer(index, answer.text, answer.description)}
                       disabled={answerPending}
                       aria-label="Edit option"
-                      className="p-1.5 rounded-lg text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 transition-colors disabled:opacity-40"
+                      className="p-1.5 rounded-lg text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 transition-colors disabled:opacity-40 opacity-0 group-hover:opacity-100 focus:opacity-100 focus-within:opacity-100"
                     >
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDeleteAnswer(index, answer.text)}
-                      disabled={answerPending || hasVotes}
-                      aria-label={hasVotes ? 'Cannot delete: has votes' : 'Delete option'}
-                      title={hasVotes ? 'Cannot delete: someone has voted for this' : 'Delete option'}
-                      className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-30 disabled:hover:text-slate-300 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+                      disabled={answerPending}
+                      aria-label="Delete option"
+                      title="Delete option"
+                      className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40 opacity-0 group-hover:opacity-100 focus:opacity-100"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -342,14 +345,13 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
               const pct = totalVoters > 0 ? Math.round((count / totalVoters) * 100) : 0
               const mySelections = sessionUsers.flatMap((n) => voteMap[n] ?? [])
               const isMyChoice = mySelections.includes(idx)
-              const hasVotes = count > 0
               const isRowEditing = editingAnswerIndex === index
               const isExpanded = expandedAnswers.has(index)
 
               return (
                 <div
                   key={index}
-                  className={`rounded-xl border p-4 ${
+                  className={`rounded-xl border p-4 group ${
                     isMyChoice
                       ? 'bg-indigo-50 border-indigo-300'
                       : 'bg-white border-slate-200'
@@ -411,17 +413,17 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
                             onClick={() => startEditAnswer(index, answer.text, answer.description)}
                             disabled={answerPending}
                             aria-label="Edit option"
-                            className="p-1 rounded-lg text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 transition-colors disabled:opacity-40"
+                            className="p-1 rounded-lg text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 transition-colors disabled:opacity-40 opacity-0 group-hover:opacity-100 focus:opacity-100"
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
                           <button
                             type="button"
                             onClick={() => handleDeleteAnswer(index, answer.text)}
-                            disabled={answerPending || hasVotes}
-                            aria-label={hasVotes ? 'Cannot delete: has votes' : 'Delete option'}
-                            title={hasVotes ? 'Cannot delete: someone has voted for this' : 'Delete option'}
-                            className="p-1 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-30 disabled:hover:text-slate-300 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+                            disabled={answerPending}
+                            aria-label="Delete option"
+                            title="Delete option"
+                            className="p-1 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40 opacity-0 group-hover:opacity-100 focus:opacity-100"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>

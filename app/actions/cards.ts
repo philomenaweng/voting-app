@@ -10,7 +10,6 @@ import {
   deleteAnswerFromCard,
   setAnswerDescriptionOnCard,
   getAllUsers,
-  getVotes,
 } from '@/lib/kv'
 import type { Answer, Card } from '@/lib/types'
 
@@ -75,11 +74,6 @@ export async function deleteAnswerAction(
   cardId: string,
   index: number
 ): Promise<void> {
-  const voteMap = await getVotes(cardId)
-  const hasVotes = Object.values(voteMap).some((sel) =>
-    sel.includes(String(index))
-  )
-  if (hasVotes) return
   await deleteAnswerFromCard(cardId, index)
   revalidatePath(`/card/${cardId}`)
 }
