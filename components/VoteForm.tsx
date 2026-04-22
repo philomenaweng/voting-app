@@ -27,25 +27,31 @@ interface Props {
   unvotedSessionUsers: string[]
 }
 
+function selectionsEqual(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false
+  const set = new Set(a)
+  return b.every((x) => set.has(x))
+}
+
 export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUsers }: Props) {
-  const isCompleted = Object.keys(voteMap).length >= card.threshold
+  const totalParticipants = card.participants.length
+  const isCompleted =
+    totalParticipants > 0 && card.participants.every((p) => voteMap[p])
   const hasUnvotedSessionUsers = unvotedSessionUsers.length > 0
 
+  const answerById = new Map(card.answers.map((a) => [a.id, a]))
+
   const initialVotingAs = unvotedSessionUsers.length > 0 ? unvotedSessionUsers : sessionUsers
-  const existingSelections = sessionUsers.length > 0
-    ? (voteMap[sessionUsers[0]] ?? [])
-    : []
+  const baseline = sessionUsers.length > 0 ? (voteMap[sessionUsers[0]] ?? []) : []
 
   const [isEditing, setIsEditing] = useState(false)
   const [votingAs, setVotingAs] = useState<string[]>(initialVotingAs)
-  const [selectedAnswers, setSelectedAnswers] = useState<string[]>(
-    isEditing ? existingSelections : []
-  )
-  const [editingAnswerIndex, setEditingAnswerIndex] = useState<number | null>(null)
+  const [selectedAnswers, setSelectedAnswers] = useState<string[]>([])
+  const [editingAnswerId, setEditingAnswerId] = useState<string | null>(null)
   const [answerDraft, setAnswerDraft] = useState('')
   const [descDraft, setDescDraft] = useState('')
   const [answerPending, setAnswerPending] = useState(false)
-  const [expandedAnswers, setExpandedAnswers] = useState<Set<number>>(new Set())
+  const [expandedAnswers, setExpandedAnswers] = useState<Set<string>>(new Set())
 
   const showVotingUI = hasUnvotedSessionUsers || isEditing
   const showResults = !showVotingUI
@@ -57,12 +63,12 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
     setIsEditing(false)
   }
 
-  function toggleAnswer(index: string) {
+  function toggleAnswer(answerId: string) {
     if (card.voteType === 'single') {
-      setSelectedAnswers([index])
+      setSelectedAnswers([answerId])
     } else {
       setSelectedAnswers((prev) =>
-        prev.includes(index) ? prev.filter((a) => a !== index) : [...prev, index]
+        prev.includes(answerId) ? prev.filter((a) => a !== answerId) : [...prev, answerId]
       )
     }
   }
@@ -74,33 +80,45 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
   }
 
   function startEditing() {
-    setSelectedAnswers(existingSelections)
-    setVotingAs(sessionUsers)
+    setSelectedAnswers(baseline)
+    // Only pre-check users whose existing vote matches the baseline. Users with
+    // a different vote must be explicitly opted in, so proxy voters never get
+    // silently overwritten.
+    const matching = sessionUsers.filter((u) => {
+      const v = voteMap[u]
+      return v && selectionsEqual(v, baseline)
+    })
+    setVotingAs(matching.length > 0 ? matching : [sessionUsers[0]])
     setIsEditing(true)
   }
 
-  const totalVotes = (answerIndex: string) =>
-    Object.values(voteMap).filter((selections) => selections.includes(answerIndex)).length
+  const totalVotes = (answerId: string) =>
+    Object.values(voteMap).filter((selections) => selections.includes(answerId)).length
 
   const totalVoters = Object.keys(voteMap).length
 
-  function startEditAnswer(index: number, currentText: string, currentDesc: string | undefined) {
-    setEditingAnswerIndex(index)
+  function startEditAnswer(answerId: string, currentText: string, currentDesc: string | undefined) {
+    setEditingAnswerId(answerId)
     setAnswerDraft(currentText)
     setDescDraft(currentDesc ?? '')
   }
 
   function cancelEditAnswer() {
-    setEditingAnswerIndex(null)
+    setEditingAnswerId(null)
     setAnswerDraft('')
     setDescDraft('')
   }
 
-  async function saveEditAnswer(index: number) {
+  async function saveEditAnswer(answerId: string) {
+    const answer = answerById.get(answerId)
+    if (!answer) {
+      cancelEditAnswer()
+      return
+    }
     const trimmedText = answerDraft.trim()
     const trimmedDesc = descDraft.trim()
-    const currentText = card.answers[index].text
-    const currentDesc = card.answers[index].description ?? ''
+    const currentText = answer.text
+    const currentDesc = answer.description ?? ''
 
     if (!trimmedText) {
       cancelEditAnswer()
@@ -116,31 +134,43 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
     }
 
     setAnswerPending(true)
-    if (textChanged) await editAnswerAction(card.id, index, trimmedText)
-    if (descChanged) await setAnswerDescriptionAction(card.id, index, trimmedDesc)
+    if (textChanged) await editAnswerAction(card.id, answerId, trimmedText)
+    if (descChanged) await setAnswerDescriptionAction(card.id, answerId, trimmedDesc)
     setAnswerPending(false)
     cancelEditAnswer()
   }
 
-  async function handleDeleteAnswer(index: number, text: string) {
-    const voteCount = totalVotes(String(index))
+  async function handleDeleteAnswer(answerId: string, text: string) {
+    if (card.answers.length <= 1) {
+      window.alert('Cannot delete the only option.')
+      return
+    }
+    const voteCount = totalVotes(answerId)
     const message = voteCount > 0
       ? `Delete option "${text}"? ${voteCount} vote${voteCount !== 1 ? 's' : ''} for this option will be removed.`
       : `Delete option "${text}"?`
     const confirmed = window.confirm(message)
     if (!confirmed) return
     setAnswerPending(true)
-    await deleteAnswerAction(card.id, index)
+    await deleteAnswerAction(card.id, answerId)
     setAnswerPending(false)
   }
 
-  function toggleExpanded(index: number) {
+  function toggleExpanded(answerId: string) {
     setExpandedAnswers((prev) => {
       const next = new Set(prev)
-      if (next.has(index)) next.delete(index)
-      else next.add(index)
+      if (next.has(answerId)) next.delete(answerId)
+      else next.add(answerId)
       return next
     })
+  }
+
+  function describeVote(selections: string[] | undefined): string {
+    if (!selections || selections.length === 0) return 'not yet voted'
+    const texts = selections
+      .map((id) => answerById.get(id)?.text)
+      .filter((t): t is string => !!t)
+    return texts.length > 0 ? texts.join(', ') : 'not yet voted'
   }
 
   return (
@@ -149,7 +179,7 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
       <div>
         <h1 className="text-xl font-semibold text-slate-900 leading-snug">{card.question}</h1>
         <p className="text-sm text-slate-400 mt-1">
-          {totalVoters} / {card.threshold} voted
+          {totalVoters} / {totalParticipants} voted
           {isCompleted && (
             <span className="ml-2 text-green-600 font-medium">· Completed</span>
           )}
@@ -168,22 +198,31 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
               <div className="space-y-2">
                 {sessionUsers.map((name) => {
                   const alreadyVoted = !unvotedSessionUsers.includes(name) && !isEditing
+                  const currentVote = voteMap[name]
+                  const showCurrent = isEditing && currentVote
                   return (
                     <label
                       key={name}
-                      className={`flex items-center gap-3 cursor-pointer ${alreadyVoted ? 'opacity-40 cursor-not-allowed' : ''}`}
+                      className={`flex items-start gap-3 cursor-pointer ${alreadyVoted ? 'opacity-40 cursor-not-allowed' : ''}`}
                     >
                       <input
                         type="checkbox"
                         checked={votingAs.includes(name)}
                         onChange={() => !alreadyVoted && toggleVotingAs(name)}
                         disabled={alreadyVoted}
-                        className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                        className="w-4 h-4 mt-0.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
                       />
-                      <span className="text-sm text-slate-900">{name}</span>
-                      {alreadyVoted && (
-                        <span className="text-xs text-slate-400">(already voted)</span>
-                      )}
+                      <span className="text-sm text-slate-900 flex-1">
+                        <span>{name}</span>
+                        {alreadyVoted && (
+                          <span className="ml-2 text-xs text-slate-400">(already voted)</span>
+                        )}
+                        {showCurrent && (
+                          <span className="block text-xs text-slate-400 mt-0.5">
+                            current: {describeVote(currentVote)}
+                          </span>
+                        )}
+                      </span>
                     </label>
                   )
                 })}
@@ -196,16 +235,15 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
             {card.voteType === 'multiple' ? 'Select all that apply' : 'Select one'}
           </p>
           <div className="space-y-2">
-            {card.answers.map((answer, index) => {
-              const idx = String(index)
-              const isSelected = selectedAnswers.includes(idx)
-              const isRowEditing = editingAnswerIndex === index
-              const isExpanded = expandedAnswers.has(index)
+            {card.answers.map((answer) => {
+              const isSelected = selectedAnswers.includes(answer.id)
+              const isRowEditing = editingAnswerId === answer.id
+              const isExpanded = expandedAnswers.has(answer.id)
 
               if (isRowEditing) {
                 return (
                   <div
-                    key={index}
+                    key={answer.id}
                     className="space-y-2 px-3 py-3 rounded-xl border border-indigo-300 bg-white"
                   >
                     <input
@@ -226,7 +264,7 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
                     <div className="flex items-center justify-end gap-1">
                       <button
                         type="button"
-                        onClick={() => saveEditAnswer(index)}
+                        onClick={() => saveEditAnswer(answer.id)}
                         disabled={answerPending}
                         aria-label="Save"
                         className="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 disabled:opacity-40"
@@ -249,7 +287,7 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
 
               return (
                 <div
-                  key={index}
+                  key={answer.id}
                   className={`group rounded-xl border p-3 transition-all ${
                     isSelected
                       ? 'bg-indigo-50 border-indigo-300'
@@ -259,7 +297,7 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => toggleAnswer(idx)}
+                      onClick={() => toggleAnswer(answer.id)}
                       className={`flex-1 text-left text-base font-medium ${
                         isSelected ? 'text-indigo-800' : 'text-slate-800'
                       }`}
@@ -279,7 +317,7 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
                     </button>
                     <button
                       type="button"
-                      onClick={() => startEditAnswer(index, answer.text, answer.description)}
+                      onClick={() => startEditAnswer(answer.id, answer.text, answer.description)}
                       disabled={answerPending}
                       aria-label="Edit option"
                       className="p-1.5 rounded-lg text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 transition-colors disabled:opacity-40 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 focus:opacity-100 focus-within:opacity-100"
@@ -288,7 +326,7 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleDeleteAnswer(index, answer.text)}
+                      onClick={() => handleDeleteAnswer(answer.id, answer.text)}
                       disabled={answerPending}
                       aria-label="Delete option"
                       title="Delete option"
@@ -302,7 +340,7 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
                       <DescriptionPanel
                         description={answer.description}
                         isExpanded={isExpanded}
-                        onToggleExpand={() => toggleExpanded(index)}
+                        onToggleExpand={() => toggleExpanded(answer.id)}
                       />
                     </div>
                   )}
@@ -346,18 +384,16 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
       {showResults && (
         <div className="space-y-5">
           <div className="space-y-3">
-            {card.answers.map((answer, index) => {
-              const idx = String(index)
-              const count = totalVotes(idx)
-              const pct = totalVoters > 0 ? Math.round((count / totalVoters) * 100) : 0
+            {card.answers.map((answer) => {
+              const count = totalVotes(answer.id)
               const mySelections = sessionUsers.flatMap((n) => voteMap[n] ?? [])
-              const isMyChoice = mySelections.includes(idx)
-              const isRowEditing = editingAnswerIndex === index
-              const isExpanded = expandedAnswers.has(index)
+              const isMyChoice = mySelections.includes(answer.id)
+              const isRowEditing = editingAnswerId === answer.id
+              const isExpanded = expandedAnswers.has(answer.id)
 
               return (
                 <div
-                  key={index}
+                  key={answer.id}
                   className={`rounded-xl border p-4 group ${
                     isMyChoice
                       ? 'bg-indigo-50 border-indigo-300'
@@ -384,7 +420,7 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
                       <div className="flex items-center justify-end gap-1">
                         <button
                           type="button"
-                          onClick={() => saveEditAnswer(index)}
+                          onClick={() => saveEditAnswer(answer.id)}
                           disabled={answerPending}
                           aria-label="Save"
                           className="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 disabled:opacity-40"
@@ -404,7 +440,7 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
                     </div>
                   ) : (
                     <>
-                      <div className="flex items-center justify-between gap-2 mb-2">
+                      <div className="flex items-center justify-between gap-2">
                         <span className="flex items-center gap-1 min-w-0">
                           <span className={`text-base font-medium truncate ${isMyChoice ? 'text-indigo-800' : 'text-slate-800'}`}>
                             {isMyChoice && <CheckCircle2 className="w-4 h-4 inline mr-1.5 text-indigo-600" />}
@@ -417,7 +453,7 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
                           </span>
                           <button
                             type="button"
-                            onClick={() => startEditAnswer(index, answer.text, answer.description)}
+                            onClick={() => startEditAnswer(answer.id, answer.text, answer.description)}
                             disabled={answerPending}
                             aria-label="Edit option"
                             className="p-1 rounded-lg text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 transition-colors disabled:opacity-40 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 focus:opacity-100"
@@ -426,7 +462,7 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDeleteAnswer(index, answer.text)}
+                            onClick={() => handleDeleteAnswer(answer.id, answer.text)}
                             disabled={answerPending}
                             aria-label="Delete option"
                             title="Delete option"
@@ -436,18 +472,12 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
                           </button>
                         </div>
                       </div>
-                      <div className="w-full bg-slate-100 rounded-full h-1.5">
-                        <div
-                          className={`h-1.5 rounded-full transition-all duration-300 ${isMyChoice ? 'bg-indigo-500' : 'bg-slate-300'}`}
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
                       {answer.description && (
                         <div className="mt-3">
                           <DescriptionPanel
                             description={answer.description}
                             isExpanded={isExpanded}
-                            onToggleExpand={() => toggleExpanded(index)}
+                            onToggleExpand={() => toggleExpanded(answer.id)}
                           />
                         </div>
                       )}

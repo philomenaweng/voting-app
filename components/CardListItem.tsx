@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import ProgressBar from './ProgressBar'
 import DeleteCardButton from './DeleteCardButton'
 import type { CardWithStatus } from '@/lib/types'
 
@@ -24,7 +23,7 @@ const bucketConfig = {
 
 export default function CardListItem({ card }: Props) {
   const config = bucketConfig[card.bucket]
-  const totalParticipants = card.participants.length
+  const total = card.participants.length
 
   return (
     <div className="relative bg-white border border-slate-200 rounded-xl shadow-sm hover:border-indigo-300 hover:shadow-md transition-all">
@@ -35,15 +34,9 @@ export default function CardListItem({ card }: Props) {
             {config.label}
           </span>
         </div>
-        <div className="space-y-1.5">
-          <ProgressBar voted={card.votedCount} total={card.threshold} />
-          <p className="text-xs text-slate-400">
-            {card.votedCount} / {card.threshold} voted
-            {totalParticipants !== card.threshold && (
-              <span> (threshold of {totalParticipants} participants)</span>
-            )}
-          </p>
-        </div>
+        <p className="text-xs text-slate-400">
+          {card.votedCount} / {total} voted
+        </p>
       </Link>
       <div className="absolute bottom-3 right-3">
         <DeleteCardButton cardId={card.id} question={card.question} />

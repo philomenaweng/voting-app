@@ -11,9 +11,17 @@ import {
   setAnswerDescriptionOnCard,
   getAllUsers,
 } from '@/lib/kv'
+import { getSession } from '@/lib/session'
 import type { Answer, Card } from '@/lib/types'
 
+async function requireSession(): Promise<string[]> {
+  const session = await getSession()
+  if (session.length === 0) throw new Error('Unauthorized')
+  return session
+}
+
 export async function createCardAction(formData: FormData): Promise<void> {
+  await requireSession()
   const question = (formData.get('question') as string).trim()
   const rawTexts = formData.getAll('answer') as string[]
   const rawDescriptions = formData.getAll('answerDetails') as string[]
@@ -21,6 +29,7 @@ export async function createCardAction(formData: FormData): Promise<void> {
     .map((text, i) => {
       const description = (rawDescriptions[i] ?? '').trim()
       return {
+        id: crypto.randomUUID(),
         text: text.trim(),
         ...(description ? { description } : {}),
       }
@@ -29,13 +38,11 @@ export async function createCardAction(formData: FormData): Promise<void> {
   const voteType = formData.get('voteType') as 'single' | 'multiple'
 
   const participants = await getAllUsers()
-  const threshold = participants.length
 
   const card: Card = {
     id: crypto.randomUUID(),
     question,
     participants,
-    threshold,
     answers,
     voteType,
     createdAt: Date.now(),
@@ -47,12 +54,14 @@ export async function createCardAction(formData: FormData): Promise<void> {
 }
 
 export async function deleteCardAction(cardId: string): Promise<void> {
+  await requireSession()
   await deleteCard(cardId)
   revalidatePath('/home')
   redirect('/home')
 }
 
 export async function addAnswerAction(cardId: string, formData: FormData): Promise<void> {
+  await requireSession()
   const answer = (formData.get('answer') as string).trim()
   if (!answer) return
   await addAnswerToCard(cardId, answer)
@@ -61,28 +70,31 @@ export async function addAnswerAction(cardId: string, formData: FormData): Promi
 
 export async function editAnswerAction(
   cardId: string,
-  index: number,
+  answerId: string,
   text: string
 ): Promise<void> {
+  await requireSession()
   const trimmed = text.trim()
   if (!trimmed) return
-  await editAnswerOnCard(cardId, index, trimmed)
+  await editAnswerOnCard(cardId, answerId, trimmed)
   revalidatePath(`/card/${cardId}`)
 }
 
 export async function deleteAnswerAction(
   cardId: string,
-  index: number
+  answerId: string
 ): Promise<void> {
-  await deleteAnswerFromCard(cardId, index)
+  await requireSession()
+  await deleteAnswerFromCard(cardId, answerId)
   revalidatePath(`/card/${cardId}`)
 }
 
 export async function setAnswerDescriptionAction(
   cardId: string,
-  index: number,
+  answerId: string,
   description: string
 ): Promise<void> {
-  await setAnswerDescriptionOnCard(cardId, index, description)
+  await requireSession()
+  await setAnswerDescriptionOnCard(cardId, answerId, description)
   revalidatePath(`/card/${cardId}`)
 }

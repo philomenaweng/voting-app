@@ -35,9 +35,11 @@ All database access is funneled through `lib/kv.ts` — no page or action import
 | `users` | Redis Set | all user name strings |
 | `card-ids` | Redis Set | all card ID strings |
 | `card:{id}` | String | JSON-serialised `Card` object |
-| `votes:card:{id}` | Hash | `{ [userName]: JSON.stringify(string[]) }` — answer indices per user |
+| `votes:card:{id}` | Hash | `{ [userName]: JSON.stringify(string[]) }` — selected answer IDs per user |
 
 Cards are stored as JSON strings (not hashes) because the `answers` field is an array. Votes use `hset`/`hgetall` so each user's write is atomic.
+
+Each `Answer` carries a stable `id` (uuid). Votes reference answers by `id`, never by positional index — so concurrent answer add/delete can't misalign in-flight votes. All card-and-votes mutations (add/edit/delete answer, submit vote) run as atomic Lua scripts via `EVAL`. Legacy cards without `answer.id` (and their legacy index-based vote values) are migrated on first read of `getCard` in a single atomic script.
 
 ### Auth model
 

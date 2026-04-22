@@ -3,20 +3,22 @@ export const dynamic = 'force-dynamic'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { PlusCircle } from 'lucide-react'
-import { getAllCardIds, getCard, getVotes } from '@/lib/kv'
+import { getAllCardIds, getCardAndVotes } from '@/lib/kv'
 import { getSession } from '@/lib/session'
 import Header from '@/components/Header'
 import CardListItem from '@/components/CardListItem'
 import type { CardWithStatus, CardSortBucket } from '@/lib/types'
 
 function getCardBucket(
-  votedCount: number,
-  threshold: number,
+  participants: string[],
   sessionUsers: string[],
   votedUsers: string[]
 ): CardSortBucket {
-  if (votedCount >= threshold) return 'completed'
-  const hasUnvotedSessionUser = sessionUsers.some((u) => !votedUsers.includes(u))
+  const everyoneVoted = participants.every((p) => votedUsers.includes(p))
+  if (everyoneVoted) return 'completed'
+  const hasUnvotedSessionUser = sessionUsers.some(
+    (u) => participants.includes(u) && !votedUsers.includes(u)
+  )
   return hasUnvotedSessionUser ? 'action-required' : 'waiting'
 }
 
@@ -31,11 +33,11 @@ export default async function HomePage() {
   const cardsWithVotes: CardWithStatus[] = (
     await Promise.all(
       ids.map(async (id) => {
-        const [card, voteMap] = await Promise.all([getCard(id), getVotes(id)])
+        const { card, voteMap } = await getCardAndVotes(id)
         if (!card) return null
         const votedUsers = Object.keys(voteMap)
         const votedCount = votedUsers.length
-        const bucket = getCardBucket(votedCount, card.threshold, session, votedUsers)
+        const bucket = getCardBucket(card.participants, session, votedUsers)
         return { ...card, voteMap, bucket, votedCount } satisfies CardWithStatus
       })
     )

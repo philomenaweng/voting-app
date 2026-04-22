@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import { getCard, getVotes } from '@/lib/kv'
+import { getCardAndVotes } from '@/lib/kv'
 import { getSession } from '@/lib/session'
 import Header from '@/components/Header'
 import VoteForm from '@/components/VoteForm'
@@ -17,10 +17,15 @@ export default async function CardPage({ params }: Props) {
   const session = await getSession()
   if (session.length === 0) redirect('/')
 
-  const [card, voteMap] = await Promise.all([getCard(id), getVotes(id)])
+  const { card, voteMap } = await getCardAndVotes(id)
   if (!card) notFound()
 
-  const unvotedSessionUsers = session.filter((name) => !voteMap[name])
+  const participantSessionUsers = session.filter((name) =>
+    card.participants.includes(name)
+  )
+  const unvotedSessionUsers = participantSessionUsers.filter(
+    (name) => !voteMap[name]
+  )
 
   return (
     <div className="min-h-screen">
@@ -37,7 +42,7 @@ export default async function CardPage({ params }: Props) {
         <VoteForm
           card={card}
           voteMap={voteMap}
-          sessionUsers={session}
+          sessionUsers={participantSessionUsers}
           unvotedSessionUsers={unvotedSessionUsers}
         />
       </main>

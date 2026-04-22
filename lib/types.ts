@@ -1,4 +1,5 @@
 export interface Answer {
+  id: string
   text: string
   description?: string
 }
@@ -7,7 +8,6 @@ export interface Card {
   id: string
   question: string
   participants: string[]
-  threshold: number
   answers: Answer[]
   voteType: 'single' | 'multiple'
   createdAt: number
