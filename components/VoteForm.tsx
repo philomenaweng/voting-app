@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useState, type ReactNode } from 'react'
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   CheckCircle2,
   Circle,
@@ -248,15 +248,20 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
               }
 
               return (
-                <div key={index} className="space-y-2 group">
+                <div
+                  key={index}
+                  className={`group rounded-xl border p-3 transition-all ${
+                    isSelected
+                      ? 'bg-indigo-50 border-indigo-300'
+                      : 'bg-white border-slate-200 hover:border-indigo-200'
+                  }`}
+                >
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => toggleAnswer(idx)}
-                      className={`flex-1 text-left px-4 py-3 rounded-xl border text-sm font-medium transition-all ${
-                        isSelected
-                          ? 'bg-indigo-50 border-indigo-300 text-indigo-800'
-                          : 'bg-white border-slate-200 text-slate-800 hover:border-indigo-200 hover:bg-slate-50'
+                      className={`flex-1 text-left text-base font-medium ${
+                        isSelected ? 'text-indigo-800' : 'text-slate-800'
                       }`}
                     >
                       <span className="flex items-center gap-3">
@@ -293,11 +298,13 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
                     </button>
                   </div>
                   {answer.description && (
-                    <DescriptionPanel
-                      description={answer.description}
-                      isExpanded={isExpanded}
-                      onToggleExpand={() => toggleExpanded(index)}
-                    />
+                    <div className="mt-2 pl-7">
+                      <DescriptionPanel
+                        description={answer.description}
+                        isExpanded={isExpanded}
+                        onToggleExpand={() => toggleExpanded(index)}
+                      />
+                    </div>
                   )}
                 </div>
               )
@@ -399,7 +406,7 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
                     <>
                       <div className="flex items-center justify-between gap-2 mb-2">
                         <span className="flex items-center gap-1 min-w-0">
-                          <span className={`text-sm font-medium truncate ${isMyChoice ? 'text-indigo-800' : 'text-slate-800'}`}>
+                          <span className={`text-base font-medium truncate ${isMyChoice ? 'text-indigo-800' : 'text-slate-800'}`}>
                             {isMyChoice && <CheckCircle2 className="w-4 h-4 inline mr-1.5 text-indigo-600" />}
                             {answer.text}
                           </span>
@@ -474,11 +481,27 @@ interface DescriptionPanelProps {
 }
 
 function DescriptionPanel({ description, isExpanded, onToggleExpand }: DescriptionPanelProps) {
-  const canTruncate = description.length > 120 || description.includes('\n')
+  const ref = useRef<HTMLParagraphElement>(null)
+  const [canTruncate, setCanTruncate] = useState(false)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const check = () => {
+      const lineHeight = parseFloat(getComputedStyle(el).lineHeight)
+      if (!lineHeight) return
+      setCanTruncate(el.scrollHeight > lineHeight * 2 + 1)
+    }
+    check()
+    const observer = new ResizeObserver(check)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [description])
 
   return (
     <div className="space-y-1.5">
       <p
+        ref={ref}
         className={`text-sm text-slate-600 whitespace-pre-wrap break-words ${
           canTruncate && !isExpanded ? 'line-clamp-2' : ''
         }`}
