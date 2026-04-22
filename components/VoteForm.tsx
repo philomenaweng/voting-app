@@ -282,7 +282,7 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
                       onClick={() => startEditAnswer(index, answer.text, answer.description)}
                       disabled={answerPending}
                       aria-label="Edit option"
-                      className="p-1.5 rounded-lg text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 transition-colors disabled:opacity-40 opacity-0 group-hover:opacity-100 focus:opacity-100 focus-within:opacity-100"
+                      className="p-1.5 rounded-lg text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 transition-colors disabled:opacity-40 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 focus:opacity-100 focus-within:opacity-100"
                     >
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
@@ -292,7 +292,7 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
                       disabled={answerPending}
                       aria-label="Delete option"
                       title="Delete option"
-                      className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40 opacity-0 group-hover:opacity-100 focus:opacity-100"
+                      className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 focus:opacity-100"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -420,7 +420,7 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
                             onClick={() => startEditAnswer(index, answer.text, answer.description)}
                             disabled={answerPending}
                             aria-label="Edit option"
-                            className="p-1 rounded-lg text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 transition-colors disabled:opacity-40 opacity-0 group-hover:opacity-100 focus:opacity-100"
+                            className="p-1 rounded-lg text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 transition-colors disabled:opacity-40 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 focus:opacity-100"
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
@@ -430,7 +430,7 @@ export default function VoteForm({ card, voteMap, sessionUsers, unvotedSessionUs
                             disabled={answerPending}
                             aria-label="Delete option"
                             title="Delete option"
-                            className="p-1 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40 opacity-0 group-hover:opacity-100 focus:opacity-100"
+                            className="p-1 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 focus:opacity-100"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
