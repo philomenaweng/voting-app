@@ -28,7 +28,7 @@ export default function CardListItem({ card }: Props) {
   return (
     <div className="relative bg-white border border-slate-200 rounded-xl shadow-sm hover:border-indigo-300 hover:shadow-md transition-all">
       <Link href={`/card/${card.id}`} className="block p-5">
-        <div className="mb-3 pr-36">
+        <div className="mb-3 pr-40 sm:pr-36">
           <h3 className="font-medium text-slate-900 leading-snug">{card.question}</h3>
         </div>
         <p className="text-xs text-slate-400">
