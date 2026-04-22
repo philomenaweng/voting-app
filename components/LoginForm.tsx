@@ -22,8 +22,8 @@ export default function LoginForm({ users }: Props) {
     <div className="min-h-[100dvh] flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-semibold text-slate-900">Who are you?</h1>
-          <p className="text-slate-500 text-sm mt-1">Select your name or add a new one</p>
+          <h1 className="text-2xl font-semibold text-slate-900">Weng Fam 2026 Tokyo Trip</h1>
+          <p className="text-slate-500 text-sm mt-1">Select or add who you are voting for</p>
         </div>
 
         <form action={loginAction} className="space-y-4">
